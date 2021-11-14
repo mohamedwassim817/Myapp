@@ -1,0 +1,124 @@
+npm uninstall -g @angular/cli
+npm cache clean --force
+
+lien d'installation
+https://tecadmin.net/install-angular-on-ubuntu/
+
+desinstallation
+
+sudo rm -rf /usr/local/bin/npm 
+sudo rm -rf /usr/local/share/man/man1/node* 
+sudo rm -rf /usr/local/lib/dtrace/node.d
+rm -rf ~/.npm
+rm -rf ~/.node-gyp
+sudo rm -rf /opt/local/bin/node
+sudo rm -rf /opt/local/include/node
+sudo rm -rf /opt/local/lib/node_modules
+sudo rm -rf /usr/local/lib/node*
+sudo rm -rf /usr/local/include/node*
+sudo rm -rf /usr/local/bin/node*
+sudo apt-get remove nodejs npm node
+sudo apt-get purge nodejs
+
+npm install -g @angular/cli --unsafe-perm=true --allow-root
+
+PS:il faut que angular js ait la meme version que angular cli 
+
+
+---------------------------------------------------
+
+1) git init
+
+2) git add .
+
+3) git commit -m "Add all my files"
+
+4) git remote add origin https://github.com/yourusername/your-repo-name.git
+
+Upload of project from scratch require git pull origin master.
+
+5) git pull origin master
+
+6) git push origin master
+
+
+
+-----------------------------------------------
+
+pipeline 
+
+
+pipeline {
+	agent any
+		stages{
+			stage('Build') {
+				steps {
+					script{
+						sh "ansible-playbook ansible/playbook.yml -i ansible/inventory/Server_host.yml " 
+					}
+				}
+			}
+		}
+}
+ pipeline {
+  agent any
+    stages {
+        stage('Pull') {
+             steps{
+                script{
+                    checkout([$class: 'GitSCM', branches: [[name: '*/master']],
+                        userRemoteConfigs: [[
+                            credentialsId: '67c2744e-c2d9-4b17-9f12-35c2d4eaac32',
+                            url: 'https://github.com/ami123k/appcloud.git']]])
+                }
+            }
+        }
+}}
+
+
+
+----------------------------------------------------------
+
+
+pipeline {
+
+    agent any
+
+
+    stages {
+       stage ('GIT') {
+            steps {
+               echo "Getting Project from Git"; 
+                git branch: "wassim", 
+                    url: "https://github.com/skanderbenosman/IntegrationElites.git";
+            }
+        }
+
+        stage("Build") {
+            steps {
+                bat "mvn -version"
+                bat "mvn clean package -DskipTests"
+                
+            }
+        }
+        
+        stage("Sonar") {
+            steps {
+                bat "mvn sonar:sonar"
+            }
+        }
+        
+        stage("DEPLOY") {
+            steps {
+                bat "mvn clean package deploy:deploy-file -DskipTests -DgroupId=tn.esprit -DartifactId=timesheet-ci -Dversion=2.0 -DgeneratePom=true -Dpackaging=jar -DrepositoryId=deploymentRepo -Durl=http://localhost:8081/repository/maven-releases/ -Dfile=target/timesheet-ci-2.0.jar"
+            }
+        }
+    }
+   
+    post {
+        always {
+            cleanWs()
+        }
+    }
+    
+}
